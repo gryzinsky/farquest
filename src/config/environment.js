@@ -19,7 +19,12 @@ const awsAuthParams = {
   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
 }
 
+const taskPath = process.env.TASK_PATH
+const taskRequestMethod = process.env.TASK_REQUEST_METHOD
+
 module.exports = {
   taskParams,
   awsAuthParams,
+  taskPath,
+  taskRequestMethod
 }
