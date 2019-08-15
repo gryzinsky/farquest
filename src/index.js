@@ -19,26 +19,27 @@ exports.handler = async function(event, context) {
     const taskArn = getProperty(["tasks", 0, "taskArn"], startedTask)
 
     console.log(
-      `Waiting for the task with arn: ${getProperty(
+      `Created task with arn: ${getProperty(
         ["tasks", 0, "taskArn"],
         startedTask,
-      )} to be ready...`,
+      )}`,
     )
 
-    await waitForTaskState(
-      ecs,
-      "tasksRunning",
-      env.taskParams.cluster,
-      taskArn,
+    console.log(
+      `Waiting for the task to be ready...`,
     )
+
+    await waitForTaskState(ecs, "tasksRunning", env.taskParams.cluster, taskArn)
 
     console.log("Task is running!")
     const taskIP = await getRunningTaskIP(ecs, env.taskParams.cluster, taskArn)
-    const response = await sendPayloadToTask(taskIP, context)
-
-    await endTask(ecs, env.taskParams.cluster, taskArn)
+    console.log(`Got the following task ip: ${taskIP}`)
     
-    return response
+    // const response = await sendPayloadToTask(taskIP, context)
+    await endTask(ecs, env.taskParams.cluster, taskArn)
+    console.log("Task killed!")
+
+    // return response
   } catch (error) {
     return error
   }

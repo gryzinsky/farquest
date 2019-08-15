@@ -10,7 +10,7 @@ async function runTask(ecs, taskParams) {
 
 async function endTask(ecs, cluster, taskArn) {
   return await ecs
-    .stopTask(taskParams)
+    .stopTask({ task: taskArn, cluster: cluster })
     .promise()
     .then(data => data)
     .catch(e => e)
