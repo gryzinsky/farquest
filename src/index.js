@@ -35,7 +35,7 @@ exports.handler = async function(event, context) {
     const taskIP = await getRunningTaskIP(ecs, env.taskParams.cluster, taskArn)
     console.log(`Got the following task ip: ${taskIP}`)
     
-    // const response = await sendPayloadToTask(taskIP, context)
+    // const response = await sendPayloadToTask(taskIP, env.taskPath, env.taskRequestMethod, context)
     await endTask(ecs, env.taskParams.cluster, taskArn)
     console.log("Task killed!")
 

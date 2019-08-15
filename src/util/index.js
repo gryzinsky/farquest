@@ -45,8 +45,8 @@ async function getRunningTaskIP(ecs, cluster, taskArn) {
     .catch(e => e)
 }
 
-async function sendPayloadToTask(ip, payload) {
-  let req = setupRequest(ip, "/", "POST")
+async function sendPayloadToTask(ip, taskPath, method, payload) {
+  let req = setupRequest(ip, taskPath, method)
   req.write(JSON.stringify(payload))
   return req.end()
 }
