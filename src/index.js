@@ -2,6 +2,7 @@ const AWS = require("aws-sdk")
 const env = require("./config/environment")
 const {
   runTask,
+  endTask,
   waitForTaskState,
   sendPayloadToTask,
   getRunningTaskIP,
@@ -12,27 +13,33 @@ exports.handler = async function(event, context) {
   const ecs = new AWS.ECS(env.awsAuthParams)
 
   console.log("Starting the configured task...")
-  const startedTask = await runTask(ecs, env.taskParams)
-  console.log(startedTask)
 
-  console.log("Waiting for the task to be ready...")
-  const waitResponse = await waitForTaskState(
-    ecs,
-    "tasksRunning",
-    env.taskParams.cluster,
-    getProperty(["tasks", 0, "taskArn"], startedTask),
-  )
-   console.log(waitResponse)
+  try {
+    const startedTask = await runTask(ecs, env.taskParams)
+    const taskArn = getProperty(["tasks", 0, "taskArn"], startedTask)
 
-  console.log("Task is ready!")
-  const taskIP = await getRunningTaskIP(
-    ecs,
-    env.taskParams.cluster,
-    getProperty(["tasks", 0, "taskArn"], startedTask),
-  )
-  console.log(taskIP)
+    console.log(
+      `Waiting for the task with arn: ${getProperty(
+        ["tasks", 0, "taskArn"],
+        startedTask,
+      )} to be ready...`,
+    )
 
-  const response = await sendPayloadToTask(taskIP, context)
+    await waitForTaskState(
+      ecs,
+      "tasksRunning",
+      env.taskParams.cluster,
+      taskArn,
+    )
 
-  return response
+    console.log("Task is running!")
+    const taskIP = await getRunningTaskIP(ecs, env.taskParams.cluster, taskArn)
+    const response = await sendPayloadToTask(taskIP, context)
+
+    await endTask(ecs, env.taskParams.cluster, taskArn)
+    
+    return response
+  } catch (error) {
+    return error
+  }
 }

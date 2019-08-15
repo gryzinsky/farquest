@@ -8,6 +8,14 @@ async function runTask(ecs, taskParams) {
     .catch(e => e)
 }
 
+async function endTask(ecs, cluster, taskArn) {
+  return await ecs
+    .stopTask(taskParams)
+    .promise()
+    .then(data => data)
+    .catch(e => e)
+}
+
 async function waitForTaskState(ecs, state, cluster, taskArn) {
   return await ecs
     .waitFor(state, { tasks: [taskArn], cluster: cluster })
@@ -72,6 +80,7 @@ function setupRequest(ip, path, method) {
 
 exports.getProperty = getProperty
 exports.runTask = runTask
+exports.endTask = endTask
 exports.waitForTaskState = waitForTaskState
 exports.getRunningTaskIP = getRunningTaskIP
 exports.sendPayloadToTask = sendPayloadToTask
