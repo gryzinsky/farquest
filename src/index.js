@@ -1,77 +1,38 @@
 const AWS = require("aws-sdk")
-const http = require("http")
 const env = require("./config/environment")
-
-const getProperty = p => o =>
-  p.reduce((xs, x) => (xs && xs[x] ? xs[x] : null), o)
-
-async function runTask(ecs) {
-  return await ecs.runTask(env.taskParams, (err, data) => {
-    return err ? { err: err, stack: err.stack } : data
-  })
-}
-
-async function waitForTaskState(ecs, state, taskArn) {
-  return await ecs.waitFor(state, { tasks: [taskArn] }, (err, data) => {
-    return err ? { err: err, stack: err.stack } : data
-  })
-}
-
-async function sendPayloadToTask(ip, payload) {
-  let req = setupRequest(ip, "/", "POST")
-  req.write(JSON.stringify(payload))
-  return req.end()
-}
-
-function setupRequest(ip, path, method) {
-  return http.request(
-    {
-      host: ip,
-      path: path,
-      method: method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    },
-    res => {
-      let buffers = []
-      res.on("error", reject)
-      res.on("data", buffer => buffers.push(buffer))
-      res.on("end", () =>
-        res.statusCode === 200
-          ? resolve(Buffer.concat(buffers))
-          : reject(Buffer.concat(buffers)),
-      )
-    },
-  )
-}
+const {
+  runTask,
+  waitForTaskState,
+  sendPayloadToTask,
+  getRunningTaskIP,
+  getProperty,
+} = require("./util")
 
 exports.handler = async function(event, context) {
   const ecs = new AWS.ECS(env.awsAuthParams)
 
-  const startedTask = await runTask(ecs)
+  console.log("Starting the configured task...")
+  const startedTask = await runTask(ecs, env.taskParams)
+  console.log(startedTask)
 
-  if (startedTask.err) {
-    return startedTask
-  }
-
+  console.log("Waiting for the task to be ready...")
   const waitResponse = await waitForTaskState(
     ecs,
     "tasksRunning",
+    env.taskParams.cluster,
     getProperty(["tasks", 0, "taskArn"], startedTask),
   )
+   console.log(waitResponse)
 
-  if (waitResponse.err) {
-    return waitResponse
-  }
-
-  const request = await sendPayloadToTask(
-    getProperty(
-      ["tasks", 0, "containers", 0, "networkInterfaces", 0, "privateIpAddress"],
-      waitResponse,
-    ),
-    context,
+  console.log("Task is ready!")
+  const taskIP = await getRunningTaskIP(
+    ecs,
+    env.taskParams.cluster,
+    getProperty(["tasks", 0, "taskArn"], startedTask),
   )
+  console.log(taskIP)
 
-  return request
+  const response = await sendPayloadToTask(taskIP, context)
+
+  return response
 }
