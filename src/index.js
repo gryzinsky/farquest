@@ -11,6 +11,7 @@ const {
 
 exports.handler = async function(_event, _context) {
   const ecs = new AWS.ECS(env.awsAuthParams)
+  const ec2 = new AWS.EC2(env.awsAuthParams)
 
   console.log("Starting the configured task...")
 
@@ -30,7 +31,10 @@ exports.handler = async function(_event, _context) {
     await waitForTaskState(ecs, "tasksRunning", env.taskParams.cluster, taskArn)
 
     console.log("Task is running!")
-    const taskIP = await getRunningTaskIP(ecs, env.taskParams.cluster, taskArn)
+    const taskIP = await getRunningTaskIP(env.taskParams.cluster, taskArn, {
+      public: process.env.NODE_ENV !== "production",
+    })
+
     console.log(`Got the following task ip: ${taskIP}`)
 
     console.log("Ok! Sending payload! Chooooooo")
@@ -45,6 +49,7 @@ exports.handler = async function(_event, _context) {
 
     // return response
   } catch (error) {
+    console.error(error)
     return error
   }
 

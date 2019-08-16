@@ -19,7 +19,8 @@
   },
   "homepage": "https://github.com/Emethium/farquest#readme",
   "dependencies": {
-    "aws-sdk": "^2.512.0"
+    "aws-sdk": "^2.512.0",
+    "winston": "^3.2.1"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.2",

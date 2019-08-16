@@ -1,5 +1,11 @@
 const http = require("http")
 
+const { EC2, ECS } = require("aws-sdk")
+const env = require("../config/environment")
+
+const ec2 = new EC2(env.awsAuthParams)
+const ecs = new ECS(env.awsAuthParams)
+
 async function runTask(ecs, taskParams) {
   return await ecs
     .runTask(taskParams)
@@ -24,25 +30,68 @@ async function waitForTaskState(ecs, state, cluster, taskArn) {
     .catch(e => e)
 }
 
-async function getRunningTaskIP(ecs, cluster, taskArn) {
-  return await ecs
+/**
+ * Retrieves the public ip from any given network interface
+ *
+ * @param {string} eni - Elastic Network Interface identifier
+ */
+async function getIp({ eni }) {
+  if (!eni) return
+
+  try {
+    const params = {
+      NetworkInterfaceIds: [eni],
+    }
+
+    const {
+      NetworkInterfaces: interfaces,
+    } = await ec2.describeNetworkInterfaces(params).promise()
+
+    return interfaces[0].Association.PublicIp
+  } catch (error) {
+    logger.error("Could not retrieve public ip from interface", {
+      category: "cloud-provider",
+      error,
+    })
+    throw error
+  }
+}
+
+async function getRunningTaskIP(cluster, taskArn, { public = false }) {
+  const taskDescription = await ecs
     .describeTasks({ tasks: [taskArn], cluster: cluster })
     .promise()
-    .then(data => {
-      return getProperty(
-        [
-          "tasks",
-          0,
-          "containers",
-          0,
-          "networkInterfaces",
-          0,
-          "privateIpv4Address",
-        ],
-        data,
-      )
-    })
-    .catch(e => e)
+
+  if (public) {
+    const eni = getProperty(
+      ["tasks", 0, "attachments", 0, "details", 1, "value"],
+      taskDescription,
+    )
+
+    const ec2 = new EC2(env.awsAuthParams)
+
+    const publicIp = await ec2
+      .describeNetworkInterfaceAttribute({
+        Attribute: "PublicIp",
+        NetworkInterfaceId: eni,
+      })
+      .promise()
+
+    return publicIp
+  } else {
+    return getProperty(
+      [
+        "tasks",
+        0,
+        "containers",
+        0,
+        "networkInterfaces",
+        0,
+        "privateIpv4Address",
+      ],
+      taskDescription,
+    )
+  }
 }
 
 async function sendPayloadToTask(ip, taskPath, method, payload) {
