@@ -1,0 +1,13 @@
+version: '3.4'
+
+services:
+  lambda:
+    build:
+      context: .
+      target: development
+    volumes:
+      - ./:/app
+    env_file: .env
+    command: npm start
+    ports:
+      - 9229:9229

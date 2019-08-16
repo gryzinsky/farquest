@@ -9,9 +9,9 @@ const {
   getProperty,
 } = require("./util")
 
-exports.handler = async function(event, context) {
-  /*
+exports.handler = async function(_event, _context) {
   const ecs = new AWS.ECS(env.awsAuthParams)
+  const ec2 = new AWS.EC2(env.awsAuthParams)
 
   console.log("Starting the configured task...")
 
@@ -31,10 +31,13 @@ exports.handler = async function(event, context) {
     await waitForTaskState(ecs, "tasksRunning", env.taskParams.cluster, taskArn)
 
     console.log("Task is running!")
-    const taskIP = await getRunningTaskIP(ecs, env.taskParams.cluster, taskArn)
+    const taskIP = await getRunningTaskIP(env.taskParams.cluster, taskArn, {
+      public: process.env.NODE_ENV !== "production",
+    })
+
     console.log(`Got the following task ip: ${taskIP}`)
 
-    console.log('Ok! Sending payload! Chooooooo')
+    console.log("Ok! Sending payload! Chooooooo")
     const response = await sendPayloadToTask(
       taskIP,
       env.taskPath,
@@ -46,37 +49,10 @@ exports.handler = async function(event, context) {
 
     // return response
   } catch (error) {
+    console.error(error)
     return error
   }
-  */
 
-  console.log("Ok! Sending payload! Chooooooo")
-  const response = sendPayloadToTask(
-    "3.89.164.169",
-    env.taskPath,
-    env.taskRequestMethod,
-    fillContext(),
-  )
-
-  // console.log(response)
-  // await endTask(ecs, env.taskParams.cluster, taskArn)
-  // console.log("Task killed!")
-  return response
-}
-
-function fillContext() {
-  return {
-    proxy: null,
-    batch: [
-      {
-        rental: "movida",
-        id: "1",
-        store: "guarulhos",
-        withdrawalTime: "10:00",
-        returnTime: "10:00",
-        offset: 1,
-        lor: 1,
-      },
-    ],
-  }
+  await endTask(ecs, env.taskParams.cluster, taskArn)
+  console.log("Task killed!")
 }

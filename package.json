@@ -4,6 +4,8 @@
   "description": "A lambda do kick off a AWS Fargate Task with a payload and retrieve it's response",
   "main": "index.js",
   "scripts": {
+    "commit": "git-cz",
+    "start": "node -e \"require('./src/index.js').handler(null, \"\")\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -17,7 +19,8 @@
   },
   "homepage": "https://github.com/Emethium/farquest#readme",
   "dependencies": {
-    "aws-sdk": "^2.509.0"
+    "aws-sdk": "^2.512.0",
+    "winston": "^3.2.1"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.2",
