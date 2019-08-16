@@ -45,37 +45,41 @@ async function getRunningTaskIP(ecs, cluster, taskArn) {
     .catch(e => e)
 }
 
-async function sendPayloadToTask(ip, taskPath, method, payload) {
-  let req = setupRequest(ip, taskPath, method)
-  req.write(JSON.stringify(payload))
-  return req.end()
+function sendPayloadToTask(ip, taskPath, method, payload) {
+  try {
+    let data = ""
+    let req = http.request(setupOptions(ip, taskPath, method), res => {
+      res.on("data", chunk => (data += chunk))
+      res.on("end", () => {
+        data = JSON.parse(data)
+      })
+    })
+
+    req.write(JSON.stringify(payload))
+    req.end()
+
+    return data
+  } catch (error) {
+    console.log("Could not send the payload to the task!")
+    return error
+  }
 }
 
 function getProperty(p, o) {
   return p.reduce((xs, x) => (xs && xs[x] ? xs[x] : null), o)
 }
 
-function setupRequest(ip, path, method) {
-  return http.request(
-    {
-      host: ip,
-      path: path,
-      method: method,
-      headers: {
-        "Content-Type": "application/json",
-      },
+function setupOptions(ip, path, method) {
+  return {
+    host: ip,
+    path: path,
+    method: method,
+    port: 3000,
+    timeout: 300000,
+    headers: {
+      "Content-Type": "application/json",
     },
-    res => {
-      let buffers = []
-      res.on("error", reject)
-      res.on("data", buffer => buffers.push(buffer))
-      res.on("end", () =>
-        res.statusCode === 200
-          ? resolve(Buffer.concat(buffers))
-          : reject(Buffer.concat(buffers)),
-      )
-    },
-  )
+  }
 }
 
 exports.getProperty = getProperty
