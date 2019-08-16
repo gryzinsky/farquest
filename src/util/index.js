@@ -45,18 +45,25 @@ async function getRunningTaskIP(ecs, cluster, taskArn) {
     .catch(e => e)
 }
 
-function sendPayloadToTask(ip, taskPath, method, payload) {
+async function sendPayloadToTask(ip, taskPath, method, payload) {
   try {
-    let data = ""
-    let req = http.request(setupOptions(ip, taskPath, method), res => {
-      res.on("data", chunk => (data += chunk))
-      res.on("end", () => {
-        data = JSON.parse(data)
-      })
-    })
+    const data = await new Promise((resolve, reject) => {
+      const req = http.request(setupOptions(ip, taskPath, method), res => {
+        let buffer = ""
 
-    req.write(JSON.stringify(payload))
-    req.end()
+        res.on("data", chunk => (buffer += chunk))
+        res.on("end", () => {
+          try {
+            resolve(JSON.parse(buffer))
+          } catch (e) {
+            reject(e)
+          }
+        })
+      })
+
+      req.write(JSON.stringify(payload))
+      req.end()
+    })
 
     return data
   } catch (error) {

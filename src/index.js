@@ -9,8 +9,7 @@ const {
   getProperty,
 } = require("./util")
 
-exports.handler = async function(event, context) {
-  /*
+exports.handler = async function(_event, _context) {
   const ecs = new AWS.ECS(env.awsAuthParams)
 
   console.log("Starting the configured task...")
@@ -34,7 +33,7 @@ exports.handler = async function(event, context) {
     const taskIP = await getRunningTaskIP(ecs, env.taskParams.cluster, taskArn)
     console.log(`Got the following task ip: ${taskIP}`)
 
-    console.log('Ok! Sending payload! Chooooooo')
+    console.log("Ok! Sending payload! Chooooooo")
     const response = await sendPayloadToTask(
       taskIP,
       env.taskPath,
@@ -48,35 +47,7 @@ exports.handler = async function(event, context) {
   } catch (error) {
     return error
   }
-  */
 
-  console.log("Ok! Sending payload! Chooooooo")
-  const response = sendPayloadToTask(
-    "3.89.164.169",
-    env.taskPath,
-    env.taskRequestMethod,
-    fillContext(),
-  )
-
-  // console.log(response)
-  // await endTask(ecs, env.taskParams.cluster, taskArn)
-  // console.log("Task killed!")
-  return response
-}
-
-function fillContext() {
-  return {
-    proxy: null,
-    batch: [
-      {
-        rental: "movida",
-        id: "1",
-        store: "guarulhos",
-        withdrawalTime: "10:00",
-        returnTime: "10:00",
-        offset: 1,
-        lor: 1,
-      },
-    ],
-  }
+  await endTask(ecs, env.taskParams.cluster, taskArn)
+  console.log("Task killed!")
 }

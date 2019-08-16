@@ -1,2 +1,13 @@
-node_modules
-.env
+# Disallowed
+/screenshots
+/src/logs/
+/node_modules
+/.vscode/*
+.env*
+/tmp*
+/temp*
+/docs*
+
+# Allowed
+!/.vscode/launch.json
+!.env.example
