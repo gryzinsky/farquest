@@ -1,4 +1,5 @@
 const AWS = require("aws-sdk")
+const logger = require("./config/logger")
 const env = require("./config/environment")
 const {
   runTask,
@@ -13,39 +14,41 @@ exports.handler = async function(_event, _context) {
   const ecs = new AWS.ECS(env.awsAuthParams)
   const ec2 = new AWS.EC2(env.awsAuthParams)
 
-  console.log("Starting the configured task...")
+  logger.info(
+    `Starting the ${env.taskParams.taskDefinition} task on ${env.taskParams.cluster} cluster!`,
+    { category: "lambda" },
+  )
 
   try {
     const startedTask = await runTask(ecs, env.taskParams)
     const taskArn = getProperty(["tasks", 0, "taskArn"], startedTask)
 
-    console.log(
+    logger.warn(
       `Created task with arn: ${getProperty(
         ["tasks", 0, "taskArn"],
         startedTask,
       )}`,
+      { category: "lambda" },
     )
 
-    console.log(`Waiting for the task to be ready...`)
+    logger.info("Waiting for the task to be ready...", { category: "lambda" })
 
     await waitForTaskState(ecs, "tasksRunning", env.taskParams.cluster, taskArn)
 
-    console.log("Task is running!")
+    logger.warn("Task is running!", { category: "lambda" })
     const taskIP = await getRunningTaskIP(env.taskParams.cluster, taskArn, {
       public: process.env.NODE_ENV !== "production",
     })
 
-    console.log(`Got the following task ip: ${taskIP}`)
+    logger.info(`Got the following task ip: ${taskIP}`, { category: "lambda" })
 
-    console.log("Ok! Sending payload! Chooooooo")
+    logger.warn("Ok! Sending payload! Chooooooo", { category: "lambda" })
     const response = await sendPayloadToTask(
       taskIP,
       env.taskPath,
       env.taskRequestMethod,
       fillContext(),
     )
-    // await endTask(ecs, env.taskParams.cluster, taskArn)
-    console.log("Task killed!")
 
     // return response
   } catch (error) {
@@ -54,5 +57,5 @@ exports.handler = async function(_event, _context) {
   }
 
   await endTask(ecs, env.taskParams.cluster, taskArn)
-  console.log("Task killed!")
+  logger.info("Task killed!", { category: "lambda" })
 }
