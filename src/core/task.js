@@ -5,6 +5,8 @@
  */
 
 const env = require("../config/environment")
+const { ECS } = require("aws-sdk")
+
 const { getPublicIpFromNetworkInterface } = require("./network")
 
 /**
@@ -72,39 +74,12 @@ async function waitForTaskState(ecs, state, cluster, taskArn) {
  * @returns {string} The ip address associated with the task (public or private depending upon opts.public)
  */
 async function getTaskIP(cluster, taskArn, { public = false }) {
-  const taskDescription = await ecs
-    .describeTasks({ tasks: [taskArn], cluster: cluster })
-    .promise()
+  const taskMetadata = await getTaskNetworkInterface(taskArn, cluster)
 
   if (public) {
-    const eni = getProperty(
-      ["tasks", 0, "attachments", 0, "details", 1, "value"],
-      taskDescription,
-    )
-
-    const ec2 = new EC2(env.awsAuthParams)
-
-    const publicIp = await ec2
-      .describeNetworkInterfaceAttribute({
-        Attribute: "PublicIp",
-        NetworkInterfaceId: eni,
-      })
-      .promise()
-
-    return publicIp
+    return await getPublicIpFromNetworkInterface({eni: taskMetadata.eni})
   } else {
-    return getProperty(
-      [
-        "tasks",
-        0,
-        "containers",
-        0,
-        "networkInterfaces",
-        0,
-        "privateIpv4Address",
-      ],
-      taskDescription,
-    )
+    return taskMetadata.privateIp
   }
 }
 
@@ -112,24 +87,30 @@ async function getTaskIP(cluster, taskArn, { public = false }) {
  * Get task network metadata
  *
  * @param {string} id - The task identifier (ARN)
+ * @param {string} cluster - The cluster name
+ *
  * @returns {{privateIp: string, eni: string }}
  */
-async function getTaskNetworkInterface(id) {
+async function getTaskNetworkInterface(id, cluster) {
   const service = getContainerServiceObject()
 
   const params = {
     tasks: [id],
-    cluster: env.taskParams.cluster,
+    cluster: cluster,
   }
 
   try {
     const taskDescription = await service.describeTasks(params).promise()
 
     const { attachments } = taskDescription.tasks[0]
+    const networkData = attachments[0].details
+      .filter(
+        o =>
+          (o.name === "networkInterfaceId") | (o.name === "privateIPv4Address"),
+      )
+      .map(e => e.value)
 
-    return attachments
-      .find(prop => prop.type === "ElasticNetworkInterface")
-      .details.find((prop => prop.name === "networkInterfaceId").value)
+    return { privateIp: networkData[1], eni: networkData[0] }
   } catch (error) {
     throw error
   }
