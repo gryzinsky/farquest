@@ -6,6 +6,14 @@ const env = require("../config/environment")
 const ec2 = new EC2(env.awsAuthParams)
 const ecs = new ECS(env.awsAuthParams)
 
+/**
+ * Starts the environment configured task on a existing cluster
+ *
+ * @param {AWS.ECS} ecs - Elastic Container Service instance
+ * @param taskParams - Task runner configuration
+ * 
+ * @returns {AWS.Request}
+ */
 async function runTask(ecs, taskParams) {
   return await ecs
     .runTask(taskParams)
@@ -14,6 +22,15 @@ async function runTask(ecs, taskParams) {
     .catch(e => e)
 }
 
+/**
+ * Stops a already-running task on a cluster
+ *
+ * @param {AWS.ECS} ecs - Elastic Container Service instance
+ * @param {string} cluster - The name of the cluster
+ * @param {string} taskArn - The task's unique amazon resource name
+ * 
+ * @returns {AWS.Request}
+ */
 async function endTask(ecs, cluster, taskArn) {
   return await ecs
     .stopTask({ task: taskArn, cluster: cluster })
@@ -22,6 +39,16 @@ async function endTask(ecs, cluster, taskArn) {
     .catch(e => e)
 }
 
+/**
+ * Waits until a task is set to a desired state
+ *
+ * @param {AWS.ECS} ecs - Elastic Container Service instance
+ * @param {string} state - Desired task state
+ * @param {string} cluster - The name of the cluster
+ * @param {string} taskArn - The task's unique amazon resource name
+ * 
+ * @returns {AWS.Request}
+ */
 async function waitForTaskState(ecs, state, cluster, taskArn) {
   return await ecs
     .waitFor(state, { tasks: [taskArn], cluster: cluster })
@@ -34,6 +61,8 @@ async function waitForTaskState(ecs, state, cluster, taskArn) {
  * Retrieves the public ip from any given network interface
  *
  * @param {string} eni - Elastic Network Interface identifier
+ * 
+ * @returns {string} - A task's IP
  */
 async function getIp({ eni }) {
   if (!eni) return
@@ -57,6 +86,17 @@ async function getIp({ eni }) {
   }
 }
 
+/**
+ * Returns the IP for a already-running task
+ *
+ * @param {string} cluster - The name of the cluster
+ * @param {string} taskArn - The task's unique amazon resource name
+ * 
+ * @param {Object<string, any>} opts - Additional options
+ * @param {boolean}[opts.public] - Configures the retrieval of a public IP or not. Defaults to false.
+ * 
+ * @returns {string} - A task's IP
+ */
 async function getRunningTaskIP(cluster, taskArn, { public = false }) {
   const taskDescription = await ecs
     .describeTasks({ tasks: [taskArn], cluster: cluster })
@@ -94,6 +134,16 @@ async function getRunningTaskIP(cluster, taskArn, { public = false }) {
   }
 }
 
+/**
+ * Sends a custom payload to a running task and returns it's response
+ *
+ * @param {string} ip - The task's IP
+ * @param {string} taskPath - The path the request is going to hit
+ * @param {string} method - The request method
+ * @param {Object<string, any>} payload - The payload, as a JSON
+ * 
+ * @returns {Object<string, any>}
+ */
 async function sendPayloadToTask(ip, taskPath, method, payload) {
   try {
     const data = await new Promise((resolve, reject) => {
@@ -121,10 +171,27 @@ async function sendPayloadToTask(ip, taskPath, method, payload) {
   }
 }
 
+/**
+ * Returns an object's property
+ *
+ * @param {Array[string]} p - The object's deep property chained in a array of strings
+ * @param {Object<string, any>} payload - The property's object
+ * 
+ * @returns {string}
+ */
 function getProperty(p, o) {
   return p.reduce((xs, x) => (xs && xs[x] ? xs[x] : null), o)
 }
 
+/**
+ * Returns a configured http request options
+ *
+ * @param {string} ip - An IP
+ * @param {string} path - The path the request is going to hit
+ * @param {string} method - The request method
+ * 
+ * @returns {Object<string, any>}
+ */
 function setupOptions(ip, path, method) {
   return {
     host: ip,
