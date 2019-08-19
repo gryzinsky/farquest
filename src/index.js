@@ -14,8 +14,6 @@ const { getProperty } = require("./util")
 
 exports.handler = async function(_event, _context) {
   const ecs = new AWS.ECS(env.awsAuthParams)
-  const ec2 = new AWS.EC2(env.awsAuthParams)
-  _context = returnStuff()
 
   logger.info(
     `Starting the ${env.taskParams.taskDefinition} task on ${env.taskParams.cluster} cluster!`,
@@ -62,22 +60,5 @@ exports.handler = async function(_event, _context) {
   } catch (error) {
     console.error(error)
     return error
-  }
-}
-
-function returnStuff() {
-  return {
-    proxy: null,
-    batch: [
-      {
-        rental: "movida",
-        id: "1",
-        store: "guarulhos",
-        withdrawalTime: "10:00",
-        returnTime: "10:00",
-        offset: 1,
-        lor: 1,
-      },
-    ],
   }
 }

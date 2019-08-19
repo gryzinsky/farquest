@@ -4,7 +4,6 @@
  * @module core/task
  */
 
-const env = require("../config/environment")
 const { ECS } = require("aws-sdk")
 
 const { getPublicIpFromNetworkInterface } = require("./network")
