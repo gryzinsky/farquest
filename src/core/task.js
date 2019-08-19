@@ -20,8 +20,6 @@ async function runTask(ecs, taskParams) {
   return await ecs
     .runTask(taskParams)
     .promise()
-    .then(data => data)
-    .catch(e => e)
 }
 
 /**
@@ -37,8 +35,6 @@ async function endTask(ecs, cluster, taskArn) {
   return await ecs
     .stopTask({ task: taskArn, cluster: cluster })
     .promise()
-    .then(data => data)
-    .catch(e => e)
 }
 
 /**
@@ -55,8 +51,6 @@ async function waitForTaskState(ecs, state, cluster, taskArn) {
   return await ecs
     .waitFor(state, { tasks: [taskArn], cluster: cluster })
     .promise()
-    .then(data => data)
-    .catch(e => e)
 }
 
 /**

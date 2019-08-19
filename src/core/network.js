@@ -42,7 +42,7 @@ async function getPublicIpFromNetworkInterface({ eni }) {
       ip,
     })
 
-    return interfaces[0].Association.PublicIp
+    return ip
   } catch (error) {
     logger.error("Could not retrieve public ip from network interface", {
       category: "network",
@@ -101,7 +101,7 @@ async function sendPayloadToTask(ip, taskPath, method, payload) {
     return data
   } catch (error) {
     console.log("Could not send the payload to the task!")
-    return error
+    throw error
   }
 }
 
