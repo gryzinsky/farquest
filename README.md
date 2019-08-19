@@ -2,7 +2,7 @@
 
 [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/)
 
-![Logo](src/logo.svg)
+![Logo](src/assets/logo.svg)
 
 A AWS lambda to kick off a AWS Fargate Task with a custom payload,retrieve it's response, and close the task afterwards.
 

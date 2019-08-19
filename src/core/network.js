@@ -68,7 +68,70 @@ function getNetworkServiceObject() {
   return new EC2()
 }
 
+/**
+ * Sends a custom payload to a running task and returns it's response
+ *
+ * @param {string} ip - The task's IP
+ * @param {string} taskPath - The path the request is going to hit
+ * @param {string} method - The request method
+ * @param {Object<string, any>} payload - The payload, as a JSON
+ *
+ * @returns {Object<string, any>}
+ */
+async function sendPayloadToTask(ip, taskPath, method, payload) {
+  try {
+    const data = await new Promise((resolve, reject) => {
+      const req = http.request(setupOptions(ip, taskPath, method), res => {
+        let buffer = ""
+
+        res.on("data", chunk => (buffer += chunk))
+        res.on("end", () => {
+          try {
+            resolve(JSON.parse(buffer))
+          } catch (e) {
+            reject(e)
+          }
+        })
+      })
+
+      req.write(JSON.stringify(payload))
+      req.end()
+    })
+
+    return data
+  } catch (error) {
+    console.log("Could not send the payload to the task!")
+    return error
+  }
+}
+
+/**
+ * Returns a configured http request options
+ *
+ * @param {string} ip - An IP
+ * @param {string} path - The path the request is going to hit
+ * @param {string} method - The request method
+ *
+ * @returns {Object<string, any>}
+ *
+ * @inner
+ * @function
+ */
+function setupOptions(ip, path, method) {
+  return {
+    host: ip,
+    path: path,
+    method: method,
+    port: 3000,
+    timeout: 300000,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  }
+}
+
 // Exports
 module.exports = {
   getPublicIpFromNetworkInterface,
+  sendPayloadToTask,
 }

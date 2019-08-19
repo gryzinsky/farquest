@@ -1,14 +1,16 @@
 const AWS = require("aws-sdk")
 const logger = require("./config/logger")
 const env = require("./config/environment")
+
 const {
   runTask,
   endTask,
   waitForTaskState,
   sendPayloadToTask,
   getRunningTaskIP,
-  getProperty,
-} = require("./util")
+} = require("./core")
+
+const { getProperty } = require("./util")
 
 exports.handler = async function(_event, _context) {
   const ecs = new AWS.ECS(env.awsAuthParams)
