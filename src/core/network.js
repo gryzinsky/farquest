@@ -7,6 +7,7 @@
 
 // Dependencies
 const { EC2 } = require("aws-sdk")
+const http = require("http")
 
 // Local Modules
 const logger = require("../config/logger")
