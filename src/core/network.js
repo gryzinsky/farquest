@@ -100,7 +100,9 @@ async function sendPayloadToTask(ip, taskPath, method, payload) {
 
     return data
   } catch (error) {
-    console.log("Could not send the payload to the task!")
+    logger.error("Could not send the payload to the task!", {
+      category: "network",
+    })
     throw error
   }
 }
