@@ -20,6 +20,8 @@
   "homepage": "https://github.com/Emethium/farquest#readme",
   "dependencies": {
     "aws-sdk": "^2.513.0",
+    "request": "^2.88.0",
+    "requestretry": "^4.0.0",
     "winston": "^3.2.1"
   },
   "devDependencies": {
