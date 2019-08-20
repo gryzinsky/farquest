@@ -1,19 +1,20 @@
-const { getPublicIpFromNetworkInterface } = require("./network")
-const { sendPayloadToTask } = require("./network")
+const { getPublicIpFromNetworkInterface, processBatch } = require("./network")
 
-const { runTask } = require("./task")
-const { endTask } = require("./task")
-const { waitForTaskState } = require("./task")
-const { getTaskIP } = require("./task")
-const { getTaskNetworkInterface } = require("./task")
+const {
+  runTask,
+  endTask,
+  waitForTaskState,
+  getTaskIp,
+  getTaskNetworkInterface,
+} = require("./task")
 
 // Exports
 module.exports = {
   getPublicIpFromNetworkInterface,
-  sendPayloadToTask,
+  processBatch,
   runTask,
   endTask,
   waitForTaskState,
-  getTaskIP,
+  getTaskIp,
   getTaskNetworkInterface,
 }
