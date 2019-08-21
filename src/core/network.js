@@ -107,12 +107,11 @@ async function processBatch(host, batch) {
 async function sendBatch(host, batch) {
   const uri = `http://${host}:${env.taskPort}${env.taskPath}`
 
-  // Disable retries for this particular endpoint
   const opts = {
     body: batch,
     json: true,
-    retryDelay: 0,
-    maxAttempts: 0,
+    retryDelay: env.retryDelay,
+    maxAttempts: env.maxAttempts,
     fullResponse: false,
   }
 
