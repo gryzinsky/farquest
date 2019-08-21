@@ -4,23 +4,23 @@
 
 ![Logo](src/assets/logo.svg)
 
-A AWS lambda to kick off a AWS Fargate Task with a custom payload, return the response, and close the task afterwards.
+A lambda to kick off AWS Fargate Tasks from an SQS Event Source, return their response and handle task lifecycle.
 
 ## Running locally
 
 - Clone the repository
 
 - Install the depedencies running:
-  
+
   ```bash
   npm i
   ```
 
 - Create your custom `.env` file following the example provided `.env.example`
 
-- Fill the `tests/samples/payload.json` with your custom payload
+- Create your custom `tests/event.json` from `tests/samples/event.json` with your custom SQS message body
 
-- Execute the lambda with a `npm start`, or alternativelly, by executing the container with a `docker-compose run --rm lambda`
+- Execute the lambda with `npm start`, or alternativelly, by executing the container with a `docker-compose run --service-ports --rm lambda`
 
     > If running through the container, remember to build the image first. Also, you could try [nicely ask docker](https://github.com/IcaliaLabs/plis) for container operations if you're into it.
 

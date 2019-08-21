@@ -1,4 +1,4 @@
-const { getPublicIpFromNetworkInterface, processBatch } = require("./network")
+const { getPublicIpFromNetworkInterface, sendMessage } = require("./network")
 
 const {
   runTask,
@@ -11,7 +11,7 @@ const {
 // Exports
 module.exports = {
   getPublicIpFromNetworkInterface,
-  processBatch,
+  sendMessage,
   runTask,
   endTask,
   waitForTaskState,

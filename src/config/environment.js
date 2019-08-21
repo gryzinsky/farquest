@@ -7,6 +7,11 @@
 // Dependencies
 const os = require("os")
 
+// Try to load env vars if running directly on host
+if (process.env.NODE_ENV !== "production") {
+  require("dotenv").config()
+}
+
 /**
  * Configures how a task should be launch in the cluster
  *
@@ -46,7 +51,7 @@ const isProd = process.env.NODE_ENV === "production"
 const taskPort = process.env.TASK_PORT || 3000
 
 /**
- * The task scrap path
+ * The task path for sending the payload
  *
  * @static
  * @constant
@@ -100,7 +105,7 @@ const maxAttempts = process.env.MAX_ATTEMPTS || 5
  * @type {Object.<string, any>}
  */
 const defaultMeta = {
-  service: "scraper",
+  service: "farquest",
   host: os.hostname(),
   arch: os.arch(),
   cpus: os.cpus().length,
