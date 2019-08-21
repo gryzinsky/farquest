@@ -1,4 +1,12 @@
-const AWS = require("aws-sdk")
+/**
+ * Implements the lambda handler function and process managment
+ *
+ * @module core/handler
+ */
+// Dependencies
+const exit = require("async-exit-hook")
+
+// Local Modules
 const logger = require("./config/logger")
 const env = require("./config/environment")
 
@@ -10,16 +18,57 @@ const {
   getTaskIp,
 } = require("./core")
 
+/***
+ * Handle graceful shutdown
+ */
+exit(async shutdown => {
+  logger.warn(
+    "Process received a signal for terminating, finishing any running tasks.",
+    {
+      category: "handler",
+    },
+  )
+
+  if (global.taskArn) {
+    logger.info(`Stopping task ${global.taskArn}`, {
+      category: "handler",
+      taskArn,
+    })
+
+    await endTask(global.taskArn)
+
+    logger.info("Task state desired status changed to STOPPED", {
+      category: "handler",
+      taskArn: global.taskArn,
+    })
+  }
+
+  shutdown()
+})
+
+/**
+ * Implements the lambda handler
+ *
+ * @param {Object<any,any>} event - The source event that trigerred the function
+ * @param {Object<any, any>} _context - The context of the lambda execution
+ *
+ * @returns {Promise<Object<any,any>>} - The lambda output
+ */
 exports.handler = async function(event, _context) {
+  logger.info("Received source event, started processing...", {
+    category: "handler",
+    event,
+  })
+
   logger.info(
     `Starting ${env.taskParams.taskDefinition} task on ${env.taskParams.cluster} cluster!`,
     { category: "handler" },
   )
 
-  let taskArn
-
   try {
-    taskArn = await runTask()
+    global.taskArn = await runTask()
+
+    const { taskArn } = global
 
     logger.warn(`Created task with arn: ${taskArn}`, {
       category: "handler",
@@ -42,11 +91,6 @@ exports.handler = async function(event, _context) {
       public: !env.isProd,
     })
 
-    logger.warn("Sending batch request to task", {
-      category: "handler",
-      taskArn,
-    })
-
     const response = await processBatch(
       host,
       env.taskPath,
@@ -54,20 +98,9 @@ exports.handler = async function(event, _context) {
       _context,
     )
 
-    logger.info(response)
-
-    await endTask(taskArn)
-
-    logger.info("Task state changed to STOPPED", {
-      category: "handler",
-      taskArn,
-    })
-
     return response
   } catch (error) {
     logger.error("An unknown error happened", { category: "handler", error })
-
-    if (taskArn) await endTask(taskArn)
 
     throw error
   }
