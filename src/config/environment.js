@@ -37,6 +37,33 @@ const taskParams = {
 const isProd = process.env.NODE_ENV === "production"
 
 /**
+ * The task running port
+ *
+ * @static
+ * @constant
+ * @type {number}
+ * */
+const taskPort = process.env.TASK_PORT || 3000
+
+/**
+ * The task scrap path
+ *
+ * @static
+ * @constant
+ * @type {string}
+ * */
+const taskPath = process.env.TASK_PATH || "/"
+
+/**
+ * The task health check path
+ *
+ * @static
+ * @constant
+ * @type {string}
+ * */
+const taskHealthCheckPath = process.env.TASK_HEALTH_CHECK_PATH || "/status"
+
+/**
  * Globally configured timezone
  * Defaults to America/Sao_Paulo
  *
@@ -88,6 +115,9 @@ module.exports = {
   isProd,
   timezone,
   retryDelay,
+  taskPort,
+  taskPath,
+  taskHealthCheckPath,
   maxAttempts,
   defaultMeta,
 }

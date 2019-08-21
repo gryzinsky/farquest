@@ -69,10 +69,17 @@ async function getPublicIpFromNetworkInterface({ eni }) {
 async function processBatch(host, batch) {
   try {
     if (await isTaskHealth(host)) {
+      logger.info("Sending batch request to task", {
+        category: "network",
+        host,
+        batch,
+      })
+
       return await sendBatch(host, batch)
     } else {
       logger.warn("Task endpoint was not healthy, batch not sent!", {
         category: "network",
+        host,
       })
     }
   } catch (error) {
@@ -98,7 +105,7 @@ async function processBatch(host, batch) {
  * @function
  */
 async function sendBatch(host, batch) {
-  const uri = `http://${host}:3000/scrap`
+  const uri = `http://${host}:${env.taskPort}${env.taskPath}`
 
   // Disable retries for this particular endpoint
   const opts = {
@@ -124,7 +131,7 @@ async function sendBatch(host, batch) {
  * @function
  */
 async function isTaskHealth(host) {
-  const uri = `http://${host}:3000/status`
+  const uri = `http://${host}:${env.taskPort}${env.taskHealthCheckPath}`
 
   const opts = {
     json: true,
