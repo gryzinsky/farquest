@@ -1,4 +1,12 @@
-const AWS = require("aws-sdk")
+/**
+ * Implements the lambda handler function and process managment
+ *
+ * @module core/handler
+ */
+// Dependencies
+const exit = require("async-exit-hook")
+
+// Local Modules
 const logger = require("./config/logger")
 const env = require("./config/environment")
 
@@ -6,60 +14,94 @@ const {
   runTask,
   endTask,
   waitForTaskState,
-  sendPayloadToTask,
-  getTaskIP,
+  processBatch,
+  getTaskIp,
 } = require("./core")
 
-const { getProperty } = require("./util")
+/***
+ * Handle graceful shutdown
+ */
+exit(async shutdown => {
+  logger.warn(
+    "Process received a signal for terminating, finishing any running tasks.",
+    {
+      category: "handler",
+    },
+  )
 
-exports.handler = async function(_event, _context) {
-  const ecs = new AWS.ECS(env.awsAuthParams)
+  if (global.taskArn) {
+    logger.info(`Stopping task ${global.taskArn}`, {
+      category: "handler",
+      taskArn,
+    })
+
+    await endTask(global.taskArn)
+
+    logger.info("Task state desired status changed to STOPPED", {
+      category: "handler",
+      taskArn: global.taskArn,
+    })
+  }
+
+  shutdown()
+})
+
+/**
+ * Implements the lambda handler
+ *
+ * @param {Object<any,any>} event - The source event that trigerred the function
+ * @param {Object<any, any>} _context - The context of the lambda execution
+ *
+ * @returns {Promise<Object<any,any>>} - The lambda output
+ */
+exports.handler = async function(event, _context) {
+  logger.info("Received source event, started processing...", {
+    category: "handler",
+    event,
+  })
 
   logger.info(
-    `Starting the ${env.taskParams.taskDefinition} task on ${env.taskParams.cluster} cluster!`,
-    { category: "lambda" },
+    `Starting ${env.taskParams.taskDefinition} task on ${env.taskParams.cluster} cluster!`,
+    { category: "handler" },
   )
 
   try {
-    const startedTask = await runTask(ecs, env.taskParams)
-    const taskArn = getProperty(["tasks", 0, "taskArn"], startedTask)
+    global.taskArn = await runTask()
 
-    logger.warn(
-      `Created task with arn: ${getProperty(
-        ["tasks", 0, "taskArn"],
-        startedTask,
-      )}`,
-      { category: "lambda" },
-    )
+    const { taskArn } = global
 
-    logger.info("Waiting for the task to be ready...", { category: "lambda" })
-
-    await waitForTaskState(ecs, "tasksRunning", env.taskParams.cluster, taskArn)
-
-    logger.warn("Task is running!", { category: "lambda" })
-    const taskIP = await getTaskIP(env.taskParams.cluster, taskArn, {
-      public: process.env.NODE_ENV !== "production",
+    logger.warn(`Created task with arn: ${taskArn}`, {
+      category: "handler",
+      taskArn,
     })
 
-    logger.info(`Got the following task ip: ${taskIP}`, { category: "lambda" })
+    logger.info("Waiting for the task to be ready...", {
+      category: "handler",
+      taskArn,
+    })
 
-    logger.warn("Ok! Sending payload! Chooooooo", { category: "lambda" })
+    await waitForTaskState("tasksRunning", taskArn)
 
-    const response = await sendPayloadToTask(
-      taskIP,
+    logger.warn("Task state changed to RUNNING", {
+      category: "handler",
+      taskArn,
+    })
+
+    const host = await getTaskIp(taskArn, {
+      public: !env.isProd,
+    })
+
+    const response = await processBatch(
+      host,
       env.taskPath,
       env.taskRequestMethod,
       _context,
     )
 
-    logger.info(response)
-
-    await endTask(ecs, env.taskParams.cluster, taskArn)
-    logger.info("Task killed!", { category: "lambda" })
-
     return response
   } catch (error) {
-    console.error(error)
-    return error
+    logger.error("An unknown error happened", { category: "handler", error })
+
+    throw error
   }
 }

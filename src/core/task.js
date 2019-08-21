@@ -4,53 +4,54 @@
  * @module core/task
  */
 
+// Dependencies
 const { ECS } = require("aws-sdk")
 
+// Local modules
+const env = require("../config/environment")
 const { getPublicIpFromNetworkInterface } = require("./network")
 
 /**
  * Starts the environment configured task on a existing cluster
  *
- * @param {AWS.ECS} ecs - Elastic Container Service instance
- * @param taskParams - Task runner configuration
- *
- * @returns {AWS.Request}
+ * @returns {string} - The running task identifier (ARN)
  */
-async function runTask(ecs, taskParams) {
-  return await ecs
-    .runTask(taskParams)
+async function runTask() {
+  const service = getContainerServiceObject()
+
+  return await service
+    .runTask(env.taskParams)
     .promise()
+    .then(response => response.tasks[0].taskArn)
 }
 
 /**
- * Stops a already-running task on a cluster
+ * Stops a running task
  *
- * @param {AWS.ECS} ecs - Elastic Container Service instance
- * @param {string} cluster - The name of the cluster
- * @param {string} taskArn - The task's unique amazon resource name
+ * @param {string} id - The task identifier (ARN)
  *
  * @returns {AWS.Request}
  */
-async function endTask(ecs, cluster, taskArn) {
-  return await ecs
-    .stopTask({ task: taskArn, cluster: cluster })
-    .promise()
+async function endTask(id) {
+  const service = getContainerServiceObject()
+  const opts = { task: id, cluster: env.taskParams.cluster }
+
+  return await service.stopTask(opts).promise()
 }
 
 /**
- * Waits until a task is set to a desired state
+ * Waits until a task is in a desired state
  *
- * @param {AWS.ECS} ecs - Elastic Container Service instance
  * @param {string} state - Desired task state
- * @param {string} cluster - The name of the cluster
- * @param {string} taskArn - The task's unique amazon resource name
+ * @param {string} id - The task identifier (ARN)
  *
  * @returns {AWS.Request}
  */
-async function waitForTaskState(ecs, state, cluster, taskArn) {
-  return await ecs
-    .waitFor(state, { tasks: [taskArn], cluster: cluster })
-    .promise()
+async function waitForTaskState(state, id) {
+  const service = getContainerServiceObject()
+  const opts = { tasks: [id], cluster: env.taskParams.cluster }
+
+  return await service.waitFor(state, opts).promise()
 }
 
 /**
@@ -66,13 +67,13 @@ async function waitForTaskState(ecs, state, cluster, taskArn) {
  *
  * @returns {string} The ip address associated with the task (public or private depending upon opts.public)
  */
-async function getTaskIP(cluster, taskArn, { public = false }) {
-  const taskMetadata = await getTaskNetworkInterface(taskArn, cluster)
+async function getTaskIp(id, { public = false }) {
+  const { eni, privateIp } = await getTaskNetworkInterface(id)
 
   if (public) {
-    return await getPublicIpFromNetworkInterface({eni: taskMetadata.eni})
+    return await getPublicIpFromNetworkInterface({ eni })
   } else {
-    return taskMetadata.privateIp
+    return privateIp
   }
 }
 
@@ -80,33 +81,29 @@ async function getTaskIP(cluster, taskArn, { public = false }) {
  * Get task network metadata
  *
  * @param {string} id - The task identifier (ARN)
- * @param {string} cluster - The cluster name
  *
  * @returns {{privateIp: string, eni: string }}
  */
-async function getTaskNetworkInterface(id, cluster) {
+async function getTaskNetworkInterface(id) {
   const service = getContainerServiceObject()
 
   const params = {
     tasks: [id],
-    cluster: cluster,
+    cluster: env.taskParams.cluster,
   }
 
-  try {
-    const taskDescription = await service.describeTasks(params).promise()
+  const taskDescription = await service.describeTasks(params).promise()
 
-    const { attachments } = taskDescription.tasks[0]
-    const networkData = attachments[0].details
-      .filter(
-        o =>
-          (o.name === "networkInterfaceId") | (o.name === "privateIPv4Address"),
-      )
-      .map(e => e.value)
+  const { attachments } = taskDescription.tasks[0]
 
-    return { privateIp: networkData[1], eni: networkData[0] }
-  } catch (error) {
-    throw error
-  }
+  const networkData = attachments[0].details
+    .filter(
+      o =>
+        (o.name === "networkInterfaceId") | (o.name === "privateIPv4Address"),
+    )
+    .map(e => e.value)
+
+  return { privateIp: networkData[1], eni: networkData[0] }
 }
 
 /**
@@ -127,6 +124,6 @@ module.exports = {
   runTask,
   endTask,
   waitForTaskState,
-  getTaskIP,
+  getTaskIp,
   getTaskNetworkInterface,
 }

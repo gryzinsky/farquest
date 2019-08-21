@@ -7,10 +7,11 @@
 
 // Dependencies
 const { EC2 } = require("aws-sdk")
-const http = require("http")
+const request = require("requestretry")
 
 // Local Modules
 const logger = require("../config/logger")
+const env = require("../config/environment")
 
 /**
  * Retrieves the public ip from any given network interface.
@@ -57,6 +58,92 @@ async function getPublicIpFromNetworkInterface({ eni }) {
 }
 
 /**
+ * Sends a batch to a scraper running task and returns it's response body
+ * or undefined if the given task fails to enter a healthy state.
+ *
+ * @param {string} host - The task host ipv4 address
+ * @param {Object<string, any>} batch - The batch to be offloaded to the task (it must be a json serializable object)
+ *
+ * @returns {Object<string, any> | undefined} - The scrap result for the given task
+ */
+async function processBatch(host, batch) {
+  try {
+    if (await isTaskHealth(host)) {
+      logger.info("Sending batch request to task", {
+        category: "network",
+        host,
+        batch,
+      })
+
+      return await sendBatch(host, batch)
+    } else {
+      logger.warn("Task endpoint was not healthy, batch not sent!", {
+        category: "network",
+        host,
+      })
+    }
+  } catch (error) {
+    logger.error("Batch could not be sent to the task!", {
+      category: "network",
+      error,
+    })
+
+    throw error
+  }
+}
+
+/**
+ * Sends a batch to the given host
+ *
+ * @param {*} host - The task host ipv4 address
+ * @param {*} batch - The batch to be offloaded to the task
+ *
+ * @returns {Promise<Object<string, any>>} - The response body after fully processing the given batch
+ *
+ * @static
+ * @inner
+ * @function
+ */
+async function sendBatch(host, batch) {
+  const uri = `http://${host}:${env.taskPort}${env.taskPath}`
+
+  // Disable retries for this particular endpoint
+  const opts = {
+    body: batch,
+    json: true,
+    retryDelay: 0,
+    maxAttempts: 0,
+    fullResponse: false,
+  }
+
+  return await request.post(uri, opts)
+}
+
+/**
+ * Resolves when the task endpoint /status responds with a successfull http code.
+ *
+ * @param {*} host - The task host ipv4 address
+ *
+ * @returns {Promise<boolean>} - The task is healthy and ready for receiving requests
+ *
+ * @static
+ * @inner
+ * @function
+ */
+async function isTaskHealth(host) {
+  const uri = `http://${host}:${env.taskPort}${env.taskHealthCheckPath}`
+
+  const opts = {
+    json: true,
+    retryDelay: env.retryDelay,
+    maxAttempts: env.maxAttempts,
+    fullResponse: false,
+  }
+
+  return await request(uri, opts).then(status => status.up)
+}
+
+/**
  * Returns a service object for issuing api calls for inspecting the network
  *
  * @returns {AWS.EC2} A service object from which API calls should be issued
@@ -69,72 +156,8 @@ function getNetworkServiceObject() {
   return new EC2()
 }
 
-/**
- * Sends a custom payload to a running task and returns it's response
- *
- * @param {string} ip - The task's IP
- * @param {string} taskPath - The path the request is going to hit
- * @param {string} method - The request method
- * @param {Object<string, any>} payload - The payload, as a JSON
- *
- * @returns {Object<string, any>}
- */
-async function sendPayloadToTask(ip, taskPath, method, payload) {
-  try {
-    const data = await new Promise((resolve, reject) => {
-      const req = http.request(setupOptions(ip, taskPath, method), res => {
-        let buffer = ""
-
-        res.on("data", chunk => (buffer += chunk))
-        res.on("end", () => {
-          try {
-            resolve(JSON.parse(buffer))
-          } catch (e) {
-            reject(e)
-          }
-        })
-      })
-
-      req.write(JSON.stringify(payload))
-      req.end()
-    })
-
-    return data
-  } catch (error) {
-    logger.error("Could not send the payload to the task!", {
-      category: "network",
-    })
-    throw error
-  }
-}
-
-/**
- * Returns a configured http request options
- *
- * @param {string} ip - An IP
- * @param {string} path - The path the request is going to hit
- * @param {string} method - The request method
- *
- * @returns {Object<string, any>}
- *
- * @inner
- * @function
- */
-function setupOptions(ip, path, method) {
-  return {
-    host: ip,
-    path: path,
-    method: method,
-    port: 3000,
-    timeout: 300000,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  }
-}
-
 // Exports
 module.exports = {
   getPublicIpFromNetworkInterface,
-  sendPayloadToTask,
+  processBatch,
 }
