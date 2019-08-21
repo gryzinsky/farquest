@@ -7,26 +7,25 @@
 const crypto = require("crypto")
 
 /**
- * Returns the message body of any given queue message.
+ * Builds the request body to be offloaded to a fargate task using any given queue message.
  *
- * The body must be json parseable.
+ * The body of the message must be json parseable.
  *
  * @param {Object<any,any>} message - The received queue message
  *
- * @returns {Object<any,any>} The parsed message body
+ * @returns {Object<any,any>} The request body to be offloaded to fargate
  *
  * @static
  * @function
  */
-function getBatch(message) {
+function buildRequestBody(message) {
   const { messageId, receiptHandle, body, md5OfBody } = message
 
   if (isValidMessageBody(body, md5OfBody)) {
     return {
       messageId,
       receiptHandle,
-      proxy: null,
-      batch: JSON.parse(message.body),
+      body: JSON.parse(message.body),
     }
   } else {
     throw new Error("The message body does not match the expected content")
@@ -57,5 +56,5 @@ function isValidMessageBody(body, md5OfBody) {
 
 // Exports
 module.exports = {
-  getBatch,
+  buildRequestBody,
 }

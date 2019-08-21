@@ -1,20 +1,27 @@
 {
   "name": "farquest",
-  "version": "1.0.0",
-  "description": "A lambda do kick off a AWS Fargate Task with a payload and retrieve it's response",
-  "main": "index.js",
+  "version": "0.0.1",
+  "description": "A lambda to kick off AWS Fargate Tasks from an SQS Event Source, return their response and handle task lifecycle.",
+  "main": "src/index.js",
   "scripts": {
+    "build": "echo \"no build configured\" && exit 1",
     "commit": "git-cz",
-    "start": "lambda-local -v 3 --inspect=0.0.0.0:9229 -l src/index.js -e tests/samples/event.json -t 300 -r us-east-1",
-    "build": "echo no build configured && exit 1",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "lambda-local -v 3 --inspect=0.0.0.0:9229 -l src/index.js -e tests/event.json -t 300 -r us-east-1",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docs": "jsdoc -c jsdoc.json src/**/*.js src/*.js",
+    "docs:watch": "nodemon --exec \"jsdoc -c jsdoc.json src/**/*.js src/*.js && http-server -p 2222 -c-1 docs/\" -w src/ src/index.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Emethium/farquest.git"
   },
-  "author": "emethium",
-  "license": "ISC",
+  "author": "ZRP <zrp@zrp.com.br>",
+  "license": "UNLICENSED",
+  "private": true,
+  "contributors": [
+    "Nikolas Serafini <nikolas.serafini@zrp.com.br>",
+    "Pedro Gryzinsky <pedro.gryzinsky@zrp.com.br>"
+  ],
   "bugs": {
     "url": "https://github.com/Emethium/farquest/issues"
   },
@@ -30,13 +37,17 @@
     "babel-eslint": "^10.0.2",
     "commitizen": "^4.0.3",
     "cz-conventional-changelog": "^3.0.2",
+    "docdash": "^1.1.1",
     "dotenv": "^8.1.0",
     "eslint": "^6.2.1",
     "eslint-config-airbnb": "^18.0.1",
     "eslint-config-prettier": "^6.1.0",
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-prettier": "^3.1.0",
+    "http-server": "^0.11.1",
+    "jsdoc": "^3.6.3",
     "lambda-local": "^1.6.3",
+    "nodemon": "^1.19.1",
     "prettier": "^1.18.2"
   },
   "config": {

@@ -10,13 +10,13 @@ const hook = require("async-exit-hook")
 const logger = require("./config/logger")
 const env = require("./config/environment")
 
-const { getBatch } = require("./util")
+const { buildRequestBody } = require("./util")
 
 const {
   runTask,
   endTask,
   waitForTaskState,
-  processBatch,
+  sendMessage,
   getTaskIp,
 } = require("./core")
 
@@ -26,7 +26,7 @@ const taskArns = new Map()
 /**
  * A function to handle any pending tasks and perform graceful shutdown
  *
- * @param {Function<void>} [shutdown] - A callback for closing the system
+ * @param {Function} [shutdown] - A callback for closing the system
  */
 async function beforeExit(shutdown) {
   if (taskArns.size === 0) return
@@ -80,8 +80,8 @@ async function beforeExit(shutdown) {
  * @param {Object<any, any>} message
  */
 async function processMessage(message) {
-  const batch = getBatch(message)
-  const { messageId } = batch
+  const requestBody = buildRequestBody(message)
+  const { messageId } = requestBody
 
   let taskArn
 
@@ -116,10 +116,10 @@ async function processMessage(message) {
     })
 
     const host = await getTaskIp(taskArn, {
-      public: !env.isProd,
+      publicAddress: !env.isProd,
     })
 
-    return await processBatch(host, batch)
+    return await sendMessage(host, requestBody)
   } catch (error) {
     logger.error("An unknown error happened", {
       category: "handler",

@@ -58,32 +58,32 @@ async function getPublicIpFromNetworkInterface({ eni }) {
 }
 
 /**
- * Sends a batch to a scraper running task and returns it's response body
+ * Sends a request body to a running task and returns it's response body
  * or undefined if the given task fails to enter a healthy state.
  *
  * @param {string} host - The task host ipv4 address
- * @param {Object<string, any>} batch - The batch to be offloaded to the task (it must be a json serializable object)
+ * @param {Object<string, any>} body - The request body to be offloaded to the task (it must be a json serializable object)
  *
- * @returns {Object<string, any> | undefined} - The scrap result for the given task
+ * @returns {Object<string, any> | Array<any> | undefined} - The response body of the given task
  */
-async function processBatch(host, batch) {
+async function sendMessage(host, body) {
   try {
-    if (await isTaskHealth(host)) {
-      logger.info("Sending batch request to task", {
+    if (await isTaskHealth(host, { healthKey: "up" })) {
+      logger.info("Sending request body to task", {
         category: "network",
         host,
-        batch,
+        body,
       })
 
-      return await sendBatch(host, batch)
+      return await sendRequest(host, body)
     } else {
-      logger.warn("Task endpoint was not healthy, batch not sent!", {
+      logger.warn("Task endpoint was not healthy, request not sent!", {
         category: "network",
         host,
       })
     }
   } catch (error) {
-    logger.error("Batch could not be sent to the task!", {
+    logger.error("Request could not be sent to the task!", {
       category: "network",
       error,
     })
@@ -93,22 +93,22 @@ async function processBatch(host, batch) {
 }
 
 /**
- * Sends a batch to the given host
+ * Sends a request with body to the given host
  *
  * @param {*} host - The task host ipv4 address
- * @param {*} batch - The batch to be offloaded to the task
+ * @param {*} body - The request body to be offloaded to the task
  *
- * @returns {Promise<Object<string, any>>} - The response body after fully processing the given batch
+ * @returns {Promise<Object<string, any>>} - The response body after fully processing the given task
  *
  * @static
  * @inner
  * @function
  */
-async function sendBatch(host, batch) {
+async function sendRequest(host, body) {
   const uri = `http://${host}:${env.taskPort}${env.taskPath}`
 
   const opts = {
-    body: batch,
+    body,
     json: true,
     retryDelay: env.retryDelay,
     maxAttempts: env.maxAttempts,
@@ -122,14 +122,16 @@ async function sendBatch(host, batch) {
  * Resolves when the task endpoint /status responds with a successfull http code.
  *
  * @param {*} host - The task host ipv4 address
+ * @param {Object<string, any>} [opts] - Additional opts
+ * @param {string} [opts.healthKey] - The key from the response body to extract (this field will be parsed to a boolean)
  *
- * @returns {Promise<boolean>} - The task is healthy and ready for receiving requests
+ * @returns {Promise<boolean>} - When true the task is healthy and ready for receiving requests
  *
  * @static
  * @inner
  * @function
  */
-async function isTaskHealth(host) {
+async function isTaskHealth(host, { healthKey = "up" } = {}) {
   const uri = `http://${host}:${env.taskPort}${env.taskHealthCheckPath}`
 
   const opts = {
@@ -139,7 +141,9 @@ async function isTaskHealth(host) {
     fullResponse: false,
   }
 
-  return await request(uri, opts).then(status => status.up)
+  return await request(uri, opts).then(
+    responseBody => !!responseBody[healthKey],
+  )
 }
 
 /**
@@ -158,5 +162,5 @@ function getNetworkServiceObject() {
 // Exports
 module.exports = {
   getPublicIpFromNetworkInterface,
-  processBatch,
+  sendMessage,
 }

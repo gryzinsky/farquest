@@ -63,14 +63,14 @@ async function waitForTaskState(state, id) {
  *
  * @param {string} id - The task identifier (ARN)
  * @param {Object<string, any>} opts - Additional options
- * @param {boolean} [opts.public=false] - When true, retrieves the public address associated with the task
+ * @param {boolean} [opts.publicAddress=false] - When true, retrieves the public address associated with the task
  *
  * @returns {string} The ip address associated with the task (public or private depending upon opts.public)
  */
-async function getTaskIp(id, { public = false }) {
+async function getTaskIp(id, { publicAddress = false } = {}) {
   const { eni, privateIp } = await getTaskNetworkInterface(id)
 
-  if (public) {
+  if (publicAddress) {
     return await getPublicIpFromNetworkInterface({ eni })
   } else {
     return privateIp

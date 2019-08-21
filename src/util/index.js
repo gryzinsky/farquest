@@ -1,6 +1,6 @@
-const { getBatch } = require("./message")
+const { buildRequestBody } = require("./message")
 
 // Exports
 module.exports = {
-  getBatch,
+  buildRequestBody,
 }

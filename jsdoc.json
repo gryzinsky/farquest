@@ -1,0 +1,44 @@
+{
+  "tags": {
+    "allowUnknownTags": true
+  },
+  "source": {
+    "includePattern": ".js$",
+    "excludePattern": "(node_modules/|docs)"
+  },
+  "plugins": [
+    "plugins/markdown"
+  ],
+  "opts": {
+    "template": "node_modules/docdash",
+    "encoding": "utf8",
+    "destination": "docs/",
+    "recurse": true,
+    "verbose": true
+  },
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": true
+  },
+  "docdash": {
+    "static": true,
+    "sort": true,
+    "meta": {
+      "title": "Farquest",
+      "description": "A lambda to kick off AWS Fargate Tasks from an SQS Event Source, return their response and handle task lifecycle."
+    },
+    "search": true,
+    "collapse": false,
+    "typedefs": true,
+    "removeQuotes": "none",
+    "scripts": [],
+    "menu": {
+      "GitHub repo": {
+        "href": "https://github.com/Emethium/farquest.git",
+        "target": "_blank",
+        "class": "menu-item",
+        "id": "repository"
+      }
+    }
+  }
+}
