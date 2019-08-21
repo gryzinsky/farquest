@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "commit": "git-cz",
-    "start": "node -e \"require('./src/index.js').handler(null, require('./tests/samples/payload.json'))\"",
+    "start": "node --inspect=0.0.0.0 -e \"require('./src/index.js').handler(null, require('./tests/samples/payload.json'))\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,7 +19,8 @@
   },
   "homepage": "https://github.com/Emethium/farquest#readme",
   "dependencies": {
-    "aws-sdk": "^2.513.0",
+    "async-exit-hook": "^2.0.1",
+    "aws-sdk": "^2.514.0",
     "request": "^2.88.0",
     "requestretry": "^4.0.0",
     "winston": "^3.2.1"
