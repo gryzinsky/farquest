@@ -111,7 +111,7 @@ async function sendRequest(host, body) {
     body,
     json: true,
     retryDelay: env.retryDelay,
-    maxAttempts: env.maxAttempts,
+    maxAttempts: 0,
     fullResponse: false,
   }
 

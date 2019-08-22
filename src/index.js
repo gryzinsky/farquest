@@ -153,9 +153,13 @@ exports.handler = async function(event, _context) {
     },
   )
 
-  const result = await Promise.all(messages.map(processMessage))
+  let result
 
-  await beforeExit()
+  try {
+    result = await Promise.all(messages.map(processMessage))
+  } finally {
+    await beforeExit()
+  }
 
   return { result }
 }
